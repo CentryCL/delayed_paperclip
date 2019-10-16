@@ -48,6 +48,7 @@ module DelayedPaperclip
     end
 
     def process_delayed!
+      binding.pry
       self.job_is_processing = true
       self.post_processing = true
       reprocess!(*delayed_only_process)
@@ -79,10 +80,11 @@ module DelayedPaperclip
     private
 
     def update_processing_column
+      binding.pry
       if instance.respond_to?(:"#{name}_processing?")
-        instance.send("#{name}_processing=", false)
-        instance.class.unscoped.where(instance.class.primary_key => instance.id).update_all({ "#{name}_processing" => false })
-      end
+         instance.set("#{name}_processing".to_sym => false)
+         instance.class.find(instance.id).set({ "#{name}_processing".to_sym => false })
+	    end
     end
 
   end

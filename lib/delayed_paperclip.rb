@@ -19,16 +19,18 @@ module DelayedPaperclip
     end
 
     def enqueue(instance_klass, instance_id, attachment_name)
-      processor.enqueue_delayed_paperclip(instance_klass, instance_id, attachment_name)
+      processor.enqueue_delayed_paperclip(instance_klass, instance_id.to_s, attachment_name)
     end
 
     def process_job(instance_klass, instance_id, attachment_name)
-      instance = instance_klass.constantize.unscoped.where(id: instance_id).first
+      binding.pry
+      instance = instance_klass.constantize.unscoped.where(id: instance_id.to_s).first
       return if instance.blank?
 
       instance.
         send(attachment_name).
         process_delayed!
+      
     end
 
   end
@@ -82,7 +84,6 @@ module DelayedPaperclip
     # then enqueue
     def enqueue_delayed_processing
       mark_enqueue_delayed_processing
-
       (@_enqued_for_processing || []).each do |name|
         enqueue_post_processing_for(name)
       end
@@ -94,23 +95,25 @@ module DelayedPaperclip
     # Then immediately push the state to the database
     def mark_enqueue_delayed_processing
       unless @_enqued_for_processing_with_processing.blank? # catches nil and empty arrays
-        updates = @_enqued_for_processing_with_processing.collect{|n| "#{n}_processing = :true" }.join(", ")
-        updates = ActiveRecord::Base.send(:sanitize_sql_array, [updates, {:true => true}])
-        self.class.unscoped.where(:id => self.id).update_all(updates)
+        #updates = @_enqued_for_processing_with_processing.collect{|n| "#{n}_processing = :true" }.join(", ")
+        #updates = ActiveRecord::Base.send(:sanitize_sql_array, [updates, {:true => true}])
+        #self.class.unscoped.where(:id => self.id).update_all(updates)
+        self.set(image_processing: true) #no callback fired
       end
     end
 
-    def enqueue_post_processing_for name
-      DelayedPaperclip.enqueue(self.class.name, read_attribute(:id), name.to_sym)
+    def enqueue_post_processing_for name#, embeded_in
+       binding.pry
+       DelayedPaperclip.enqueue(self.class.name, read_attribute(:id).to_s, name.to_sym)
     end
 
-    def prepare_enqueueing_for name
+    def prepare_enqueueing_for name #, embeded_in
+      binding.pry
       if self.attributes.has_key? "#{name}_processing"
-        write_attribute("#{name}_processing", true)
+        self.set(image_processing: true) #no callback fired
         @_enqued_for_processing_with_processing ||= []
         @_enqued_for_processing_with_processing << name
       end
-
       @_enqued_for_processing ||= []
       @_enqued_for_processing << name
     end
