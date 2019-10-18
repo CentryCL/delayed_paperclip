@@ -18,19 +18,27 @@ module DelayedPaperclip
       options[:background_job_class]
     end
 
-    def enqueue(instance_klass, instance_id, attachment_name)
-      processor.enqueue_delayed_paperclip(instance_klass, instance_id.to_s, attachment_name)
+    def enqueue(instance_klass, instance_id, attachment_name, parent, parent_id)
+      processor.enqueue_delayed_paperclip(instance_klass, instance_id.to_s, attachment_name, parent, parent_id)
     end
 
-    def process_job(instance_klass, instance_id, attachment_name)
-      binding.pry
-      instance = instance_klass.constantize.unscoped.where(id: instance_id.to_s).first
-      return if instance.blank?
+    def process_job(instance_klass, instance_id, attachment_name, parent, parent_id)
+      if parent.present?
+        #search for embedded instance
+        parent_object        = parent.constantize.find(parent_id)
+        association_result   = parent_object.reflect_on_all_associations.select {|rel| rel[:class_name] == instance_klass.to_s }.first
+        name                 = association_result[:name]
+        instance = parent_object.send(name).find(instance_id)
+        return if instance.blank?
+      else
+        #just search for an
+        instance = instance_klass.constantize.unscoped.where(id: instance_id.to_s).first
+        return if instance.blank?
+      end
 
       instance.
         send(attachment_name).
         process_delayed!
-      
     end
 
   end
@@ -103,12 +111,15 @@ module DelayedPaperclip
     end
 
     def enqueue_post_processing_for name#, embeded_in
-       binding.pry
-       DelayedPaperclip.enqueue(self.class.name, read_attribute(:id).to_s, name.to_sym)
+      parent    = self._parent.present? ? self._parent.class : nil
+      parent_id = self._parent.present? ? self._parent.id :  nil
+      DelayedPaperclip.enqueue(self.class.name, read_attribute(:id).to_s,
+                               name.to_sym,
+                               parent,
+                               parent_id)
+      
     end
-
     def prepare_enqueueing_for name #, embeded_in
-      binding.pry
       if self.attributes.has_key? "#{name}_processing"
         self.set(image_processing: true) #no callback fired
         @_enqued_for_processing_with_processing ||= []
