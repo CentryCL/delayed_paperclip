@@ -3,7 +3,7 @@ Delayed::Paperclip [![Build Status](https://travis-ci.org/jrgifford/delayed_pape
 
 
 DelayedPaperclip lets you process your [Paperclip](http://github.com/thoughtbot/paperclip)
-attachments in a background task with [ActiveJob](https://github.com/rails/rails/tree/master/activejob)
+attachments in a background task with [ActiveJob](https://github.com/rails/rails/tree/master/activejob), for mongoDB
 
 Why?
 ----
@@ -38,6 +38,9 @@ In your model:
 
 ```ruby
 class User < ActiveRecord::Base
+include Mongoid::Paperclip
+include DelayedPaperclip::Glue
+
   has_attached_file :avatar, styles: {
                                        medium: "300x300>",
                                        thumb: "100x100>"
