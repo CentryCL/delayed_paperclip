@@ -119,7 +119,7 @@ module DelayedPaperclip
                                parent_id)
       
     end
-    def prepare_enqueueing_for name #, embeded_in
+    def prepare_enqueueing_for name
       if self.attributes.has_key? "#{name}_processing"
         self.set(image_processing: true) #no callback fired
         @_enqued_for_processing_with_processing ||= []

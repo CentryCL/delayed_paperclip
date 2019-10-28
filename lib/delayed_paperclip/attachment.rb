@@ -81,7 +81,7 @@ module DelayedPaperclip
     def update_processing_column
       if instance.respond_to?(:"#{name}_processing?")
          instance.set("#{name}_processing".to_sym => false)
-         instance.class.find(instance.id).set({ "#{name}_processing".to_sym => false })
+         #instance.class.find(instance.id).set({ "#{name}_processing".to_sym => false })
 	    end
     end
 
